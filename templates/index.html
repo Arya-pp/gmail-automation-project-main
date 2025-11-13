@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmail Automation Dashboard 📧</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', Arial, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: #5f6d7e;
+            margin-bottom: 0;
+            background: #ffffff;
+            padding: 40px 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: #5f6d7e;
+            font-weight: 400;
+            letter-spacing: -1px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #8a94a6;
+        }
+
+        .dashboard {
+            background: #f0f2f5;
+            padding: 40px 20px;
+        }
+
+        .config-status {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #2d3748;
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+        }
+
+        .config-status.configured {
+            background: white;
+            border-left: 4px solid #34a853;
+        }
+
+        .config-status.not-configured {
+            background: white;
+            border-left: 4px solid #d93025;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: white;
+            color: #2d3748;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+        }
+
+        .btn-primary {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1a252f;
+        }
+
+        .btn-success {
+            background: #8b939c;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #6c757d;
+        }
+
+        .btn-danger {
+            background: #8b939c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #6c757d;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #8a94a6;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #2c3e50;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .email-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .email-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            border: none;
+            transition: all 0.2s ease;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+        }
+
+        .email-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,.15);
+            transform: translateY(-2px);
+        }
+
+        .email-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .email-subject {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .email-from {
+            color: #718096;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .email-date {
+            color: #a0aec0;
+            font-size: 0.85rem;
+        }
+
+        .email-body {
+            color: #4a5568;
+            line-height: 1.6;
+            margin: 15px 0;
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .email-summary {
+            background: #edf2f7;
+            border-left: 3px solid #2c3e50;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .email-summary h4 {
+            color: #2d3748;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .email-summary p {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .badge-new {
+            background: #2d3748;
+            color: white;
+        }
+
+        .badge-summarized {
+            background: #8b939c;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #718096;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+            stroke: #cbd5e0;
+        }
+
+        .empty-state h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .empty-state p {
+            color: #718096;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+        }
+
+        .alert-info {
+            background: #e6f2ff;
+            color: #2c5282;
+        }
+
+        .alert-danger {
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+
+        .alert-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            color: #2d3748;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #718096;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 Gmail Automation Dashboard</h1>
+            <p>AI-Powered Email Management</p>
+        </div>
+
+        <div class="dashboard">
+            <!-- Configuration Status -->
+            <div id="configStatus" class="config-status">
+                <span>⚙️ Checking configuration...</span>
+            </div>
+
+            <!-- Search & Filter Section -->
+            <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,.1);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; margin-bottom: 15px;">
+                    <input type="text" id="searchInput" placeholder="🔍 Search by sender or subject..." 
+                           style="padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem;">
+                    
+                    <select id="categoryFilter" style="padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem;">
+                        <option value="is:unread">📬 Unread Only</option>
+                        <option value="in:inbox">📥 All Inbox</option>
+                        <option value="is:unread category:social">👥 Social</option>
+                        <option value="is:unread category:promotions">🏷️ Promotions</option>
+                        <option value="is:unread category:updates">📰 Updates</option>
+                    </select>
+                    
+                    <button class="btn btn-primary" onclick="searchEmails()" style="padding: 12px 24px;">
+                        🔍 Search
+                    </button>
+                </div>
+                
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label style="color: #718096; font-size: 0.9rem;">Results per page:</label>
+                    <select id="resultsPerPage" style="padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="stats" id="stats" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalEmails">0</div>
+                    <div class="stat-label">Unread Emails</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="summarizedCount">0</div>
+                    <div class="stat-label">Summarized</div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="fetchEmails(true)">
+                    📬 Fetch Emails
+                </button>
+                <button class="btn btn-success" onclick="summarizeAllEmails()" id="summarizeBtn" disabled>
+                    ✨ Summarize with AI
+                </button>
+                <button class="btn" onclick="markSelectedAsRead()" id="markReadBtn" disabled style="background: #5f6d7e; color: white;">
+                    ✅ Mark as Read
+                </button>
+                <button class="btn btn-danger" onclick="clearEmails()">
+                    🗑️ Clear All
+                </button>
+            </div>
+
+            <!-- Alert Messages -->
+            <div id="alertContainer"></div>
+
+            <!-- Loading State -->
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Loading...</p>
+            </div>
+
+            <!-- Email List -->
+            <div id="emailList" class="email-list"></div>
+
+            <!-- Load More Button -->
+            <div id="loadMoreContainer" style="text-align: center; margin-top: 20px; display: none;">
+                <button class="btn btn-primary" onclick="loadMoreEmails()" id="loadMoreBtn">
+                    📥 Load More Emails
+                </button>
+                <p style="color: #718096; margin-top: 10px; font-size: 0.9rem;" id="paginationInfo"></p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <h3>No Emails Loaded</h3>
+                <p>Click "Fetch Unread Emails" to get started</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let emails = [];
+        let nextPageToken = null;
+        let selectedEmailIds = new Set();
+        let currentQuery = 'is:unread';
+
+        // Check configuration on load
+        window.addEventListener('DOMContentLoaded', checkConfiguration);
+
+        async function checkConfiguration() {
+            try {
+                const response = await fetch('/api/check-config');
+                const data = await response.json();
+                
+                const statusDiv = document.getElementById('configStatus');
+                
+                if (data.configured) {
+                    statusDiv.className = 'config-status configured';
+                    statusDiv.innerHTML = '✅ Configuration complete - Ready to use!';
+                } else {
+                    statusDiv.className = 'config-status not-configured';
+                    let missing = [];
+                    if (!data.status.gemini_api_key) missing.push('Gemini API Key');
+                    if (!data.status.credentials_file) missing.push('credentials.json');
+                    if (!data.status.token_file) missing.push('Gmail OAuth token');
+                    
+                    statusDiv.innerHTML = `⚠️ Missing: ${missing.join(', ')} - Please complete setup`;
+                }
+            } catch (error) {
+                console.error('Error checking configuration:', error);
+            }
+        }
+
+        async function fetchEmails(reset = false) {
+            if (reset) {
+                emails = [];
+                nextPageToken = null;
+                selectedEmailIds.clear();
+            }
+            
+            showLoading(true);
+            clearAlert();
+            
+            try {
+                const maxResults = document.getElementById('resultsPerPage').value;
+                let url = `/api/fetch-emails?max_results=${maxResults}&q=${encodeURIComponent(currentQuery)}`;
+                if (nextPageToken) {
+                    url += `&page_token=${nextPageToken}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    emails = reset ? data.emails : [...emails, ...data.emails];
+                    nextPageToken = data.next_page_token;
+                    
+                    displayEmails();
+                    updateStats();
+                    updatePaginationUI(data.total_results);
+                    showAlert(data.message, 'success');
+                    
+                    if (emails.length > 0) {
+                        document.getElementById('summarizeBtn').disabled = false;
+                    }
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error fetching emails: ' + error.message, 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function searchEmails() {
+            const searchText = document.getElementById('searchInput').value.trim();
+            const category = document.getElementById('categoryFilter').value;
+            
+            // Build search query
+            if (searchText) {
+                currentQuery = `${category} (from:${searchText} OR subject:${searchText})`;
+            } else {
+                currentQuery = category;
+            }
+            
+            fetchEmails(true);
+        }
+
+        function loadMoreEmails() {
+            if (nextPageToken) {
+                fetchEmails(false);
+            }
+        }
+
+        function updatePaginationUI(totalResults) {
+            const container = document.getElementById('loadMoreContainer');
+            const btn = document.getElementById('loadMoreBtn');
+            const info = document.getElementById('paginationInfo');
+            
+            if (nextPageToken) {
+                container.style.display = 'block';
+                btn.disabled = false;
+                info.textContent = `Showing ${emails.length} of approximately ${totalResults} emails`;
+            } else {
+                if (emails.length > 0) {
+                    container.style.display = 'block';
+                    btn.disabled = true;
+                    btn.textContent = '✅ All Emails Loaded';
+                    info.textContent = `Showing all ${emails.length} emails`;
+                } else {
+                    container.style.display = 'none';
+                }
+            }
+        }
+
+        async function summarizeAllEmails() {
+            if (emails.length === 0) {
+                showAlert('No emails to summarize', 'info');
+                return;
+            }
+
+            showLoading(true);
+            clearAlert();
+            
+            try {
+                const response = await fetch('/api/summarize-emails', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ emails: emails })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    emails = data.emails;
+                    displayEmails();
+                    updateStats();
+                    showAlert('Emails summarized successfully!', 'success');
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error summarizing emails: ' + error.message, 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displayEmails() {
+            const emailList = document.getElementById('emailList');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (emails.length === 0) {
+                emailList.innerHTML = '';
+                emptyState.style.display = 'block';
+                document.getElementById('stats').style.display = 'none';
+                document.getElementById('loadMoreContainer').style.display = 'none';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            document.getElementById('stats').style.display = 'grid';
+            
+            emailList.innerHTML = emails.map((email, index) => `
+                <div class="email-card" style="opacity: ${email.is_unread ? '1' : '0.7'};">
+                    <div class="email-header">
+                        <div style="display: flex; align-items: start; gap: 10px;">
+                            <input type="checkbox" 
+                                   onchange="toggleEmailSelection('${email.id}')" 
+                                   ${selectedEmailIds.has(email.id) ? 'checked' : ''}
+                                   style="margin-top: 4px; width: 18px; height: 18px; cursor: pointer;">
+                            <div style="flex: 1;">
+                                <div class="email-subject">
+                                    ${escapeHtml(email.subject)}
+                                    ${email.summary ? '<span class="badge badge-summarized">✨ Summarized</span>' : ''}
+                                    ${email.is_unread ? '<span class="badge badge-new">NEW</span>' : '<span class="badge" style="background: #cbd5e0; color: #4a5568;">READ</span>'}
+                                    ${email.category !== 'inbox' ? `<span class="badge" style="background: #8b939c; color: white;">📁 ${email.category}</span>` : ''}
+                                </div>
+                                <div class="email-from">
+                                    👤 ${escapeHtml(email.from)}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="email-date">
+                            📅 ${escapeHtml(email.date)}
+                        </div>
+                    </div>
+                    
+                    ${email.summary ? `
+                        <div class="email-summary">
+                            <h4>🤖 AI Summary</h4>
+                            <p>${escapeHtml(email.summary)}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <details>
+                        <summary style="cursor: pointer; color: #667eea; font-weight: 600; margin-top: 10px;">
+                            📄 View Full Email Body
+                        </summary>
+                        <div class="email-body">
+                            ${escapeHtml(email.body)}
+                        </div>
+                    </details>
+                    
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button onclick="markSingleEmail('${email.id}', ${!email.is_unread})" 
+                                class="btn" style="padding: 8px 16px; font-size: 0.85rem; background: #e2e8f0; color: #2d3748;">
+                            ${email.is_unread ? '✅ Mark as Read' : '📧 Mark as Unread'}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            updateMarkReadButton();
+        }
+
+        function toggleEmailSelection(emailId) {
+            if (selectedEmailIds.has(emailId)) {
+                selectedEmailIds.delete(emailId);
+            } else {
+                selectedEmailIds.add(emailId);
+            }
+            updateMarkReadButton();
+        }
+
+        function updateMarkReadButton() {
+            const btn = document.getElementById('markReadBtn');
+            btn.disabled = selectedEmailIds.size === 0;
+            btn.textContent = `✅ Mark as Read (${selectedEmailIds.size})`;
+        }
+
+        async function markSelectedAsRead() {
+            if (selectedEmailIds.size === 0) return;
+            
+            showLoading(true);
+            try {
+                const response = await fetch('/api/mark-read', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email_ids: Array.from(selectedEmailIds) })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update local email status
+                    emails.forEach(email => {
+                        if (selectedEmailIds.has(email.id)) {
+                            email.is_unread = false;
+                        }
+                    });
+                    selectedEmailIds.clear();
+                    displayEmails();
+                    updateStats();
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error marking emails: ' + error.message, 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function markSingleEmail(emailId, markAsUnread) {
+            showLoading(true);
+            try {
+                const endpoint = markAsUnread ? '/api/mark-unread' : '/api/mark-read';
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email_ids: [emailId] })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update local email status
+                    const email = emails.find(e => e.id === emailId);
+                    if (email) {
+                        email.is_unread = markAsUnread;
+                    }
+                    displayEmails();
+                    updateStats();
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalEmails').textContent = emails.length;
+            const summarizedCount = emails.filter(e => e.summary).length;
+            document.getElementById('summarizedCount').textContent = summarizedCount;
+        }
+
+        function clearEmails() {
+            if (confirm('Are you sure you want to clear all emails?')) {
+                emails = [];
+                nextPageToken = null;
+                selectedEmailIds.clear();
+                displayEmails();
+                updateStats();
+                document.getElementById('summarizeBtn').disabled = true;
+                document.getElementById('markReadBtn').disabled = true;
+                showAlert('All emails cleared', 'info');
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const icons = {
+                success: '✅',
+                danger: '❌',
+                info: 'ℹ️'
+            };
+            
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    <span>${icons[type]} ${message}</span>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        function clearAlert() {
+            document.getElementById('alertContainer').innerHTML = '';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
