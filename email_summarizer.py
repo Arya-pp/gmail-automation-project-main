@@ -1,4 +1,5 @@
 import os
+import time
 import google.generativeai as genai
 from gmail_automation import get_unread_emails
 from dotenv import load_dotenv
@@ -51,7 +52,7 @@ def summarize_email(text):
         return f"Error summarizing email: {str(e)}"
 
 def summarize_emails(emails):
-    """Summarize multiple emails using Gemini API (for web app)"""
+    """Summarize multiple emails using Gemini API (for web app) with retry logic"""
     api_key = os.getenv('GEMINI_API_KEY')
     if not api_key or api_key == 'your_gemini_api_key_here':
         raise ValueError("Gemini API key not configured")
@@ -68,11 +69,27 @@ def summarize_emails(emails):
             email_body = email.get('body', '')[:2000]  # Limit length
             prompt = f"Summarize this email in 2-3 sentences:\n\nSubject: {email['subject']}\n\n{email_body}"
             
-            try:
-                response = gemini_model.generate_content(prompt)
-                email['summary'] = response.text.strip()
-            except Exception as e:
-                email['summary'] = f"Error: {str(e)}"
+            # Retry logic for rate limiting
+            max_retries = 3
+            retry_delay = 1  # Start with 1 second
+            
+            for attempt in range(max_retries):
+                try:
+                    response = gemini_model.generate_content(prompt)
+                    email['summary'] = response.text.strip()
+                    break  # Success, exit retry loop
+                except Exception as e:
+                    error_msg = str(e)
+                    if '429' in error_msg or 'Resource exhausted' in error_msg:
+                        if attempt < max_retries - 1:
+                            print(f"⚠️ Rate limit hit, waiting {retry_delay}s before retry...")
+                            time.sleep(retry_delay)
+                            retry_delay *= 2  # Exponential backoff
+                        else:
+                            email['summary'] = "⏳ Rate limit exceeded. Please try again in a few minutes."
+                    else:
+                        email['summary'] = f"Error: {error_msg}"
+                        break
         
         return emails
     except Exception as e:
